@@ -7,8 +7,8 @@ const float DAY_TEMP_MIN = 21.0;
 const float DAY_TEMP_MAX = 22.0;
 const float NIGHT_TEMP_MIN = 20.0;
 const float NIGHT_TEMP_MAX = 21.0;
-const int DAY_START_HOUR = 7;
-const int DAY_END_HOUR = 22;
+const int DAY_START_HOUR = 9;
+const int DAY_END_HOUR = 21;
 const int PAST_READS_COUNT = 5;
 
 // Constants
@@ -32,6 +32,9 @@ const int LCD_SEGMENTS_COUNT = 8;
 const int LCD_SEGMENTS[LCD_SEGMENTS_COUNT] = {LCD_SEG_A, LCD_SEG_B, LCD_SEG_C, LCD_SEG_D, LCD_SEG_E, LCD_SEG_F, LCD_SEG_G, LCD_SEG_DP};
 
 // Global vars
+OneWire oneWire(SENSOR_PIN);
+DallasTemperature sensors(&oneWire);
+RTC_DS1307 RTC;
 float tempCelsius;
 float pastReads[PAST_READS_COUNT];
 float refTempMin;
@@ -41,17 +44,13 @@ int counter = 0;
 float pastAvgTemp;
 float tempWeighted;
 int currentHeat;
-OneWire oneWire(SENSOR_PIN);
-DallasTemperature sensors(&oneWire);
-RTC_DS1307 RTC;
-
 
 void setup() {
-  pinMode(RELAY_PIN, OUTPUT);
-  digitalWrite(RELAY_PIN, LOW);
   sensors.begin();
   Wire.begin();
   RTC.begin();
+  pinMode(RELAY_PIN, OUTPUT);
+  digitalWrite(RELAY_PIN, LOW);
   if (! RTC.isrunning()) {
     RTC.adjust(DateTime(__DATE__,__TIME__));
   }
@@ -61,7 +60,7 @@ void setup() {
   for (int i = 0; i < LCD_SEGMENTS_COUNT; i++) {
     pinMode(LCD_SEGMENTS[i], OUTPUT);
   }
-   Serial.begin(9600);
+  Serial.begin(9600);
 }
 
 void loop() {
@@ -99,12 +98,11 @@ void loop() {
   }
   displayNumberLcd(tempCelsius, timeSymbol);
 
-    if (counter < PAST_READS_COUNT - 1 ) {
-      counter++;
-    } else {
-      counter = 0;
-    }
-  
+  if (counter < PAST_READS_COUNT - 1 ) {
+    counter++;
+  } else {
+    counter = 0;
+  }
 }
 
 float countAverage(float values[]) {
@@ -128,7 +126,7 @@ void displayNumberLcd(float value, char dayOrNight) {
       char tempBit = valueBits[i];
       if (tempBit == '.') {
         lshift = 1;
-        }
+      }
       printCharLcd(LCD_FIELDS[i - lshift], tempBit);
       delay(1);
     }
@@ -146,7 +144,7 @@ void toggleLcdField(int field) {
 
 void clearLcdSegments() {
   for (int j = 0; j < LCD_SEGMENTS_COUNT; j++) {
-      digitalWrite(LCD_SEGMENTS[j], LOW);
+    digitalWrite(LCD_SEGMENTS[j], LOW);
   }
 }
 
