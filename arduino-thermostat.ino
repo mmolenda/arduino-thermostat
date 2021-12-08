@@ -3,10 +3,10 @@
 #include "RTClib.h"
 
 // Config
-const float DAY_TEMP_MIN = 21.0;
-const float DAY_TEMP_MAX = 22.0;
-const float NIGHT_TEMP_MIN = 20.0;
-const float NIGHT_TEMP_MAX = 21.0;
+const float DAY_TEMP_MIN = 25.95;
+const float DAY_TEMP_MAX = 26.05;
+const float NIGHT_TEMP_MIN = 20.45;
+const float NIGHT_TEMP_MAX = 20.55;
 const int DAY_START_HOUR = 9;
 const int DAY_END_HOUR = 21;
 const int PAST_READS_COUNT = 5;
@@ -43,7 +43,7 @@ char timeSymbol;
 int counter = 0;
 float pastAvgTemp;
 float tempWeighted;
-int currentHeat;
+int currentHeat = HIGH;
 
 void setup() {
   sensors.begin();
@@ -81,22 +81,25 @@ void loop() {
   }
   
   pastAvgTemp = countAverage(pastReads);
-  currentHeat = digitalRead(RELAY_PIN);
-  if (currentHeat == LOW) {
+  if (currentHeat == HIGH) {
+      // not heating
       tempWeighted = tempCelsius * 0.9;
   } else {
+      // heating
       tempWeighted = tempCelsius * 1.1;
   }
   if ((tempCelsius < refTempMin) || (tempCelsius < refTempMax && tempWeighted > pastAvgTemp)) {
       // heating when temp below min or rising
-      digitalWrite(RELAY_PIN, HIGH);
+      digitalWrite(RELAY_PIN, LOW);
+      currentHeat = LOW;
       logTemp(now, timeSymbol, tempCelsius, pastAvgTemp, true);
     } else {
       // not heating when temp above max or declining
-      digitalWrite(RELAY_PIN, LOW);
+      digitalWrite(RELAY_PIN, HIGH);
+      currentHeat = HIGH;
       logTemp(now, timeSymbol, tempCelsius, pastAvgTemp, false);
   }
-  displayNumberLcd(tempCelsius, timeSymbol);
+  displayNumberLcd(tempCelsius, timeSymbol, currentHeat);
 
   if (counter < PAST_READS_COUNT - 1 ) {
     counter++;
@@ -117,7 +120,7 @@ float countAverage(float values[]) {
   return sum / divider;
 }
 
-void displayNumberLcd(float value, char dayOrNight) {
+void displayNumberLcd(float value, char dayOrNight, int currentHeat) {
   char valueBits[4];
   dtostrf(value, 4, 1, valueBits);
   for (int x = 0; x < 1000; x++) {
@@ -131,6 +134,10 @@ void displayNumberLcd(float value, char dayOrNight) {
       delay(1);
     }
     printCharLcd(LCD_FIELDS[3], dayOrNight);
+    delay(1);
+    if (currentHeat == LOW) {
+      printCharLcd(LCD_FIELDS[3], '.');
+    }
     delay(1);
   } 
 }
